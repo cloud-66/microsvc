@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/nicholasjackson/env"
 	"log"
 	"microsvc/handlers"
 	"net/http"
@@ -10,14 +11,16 @@ import (
 	"time"
 )
 
-func main() {
-	l := log.New(os.Stdout, "product-api", log.LstdFlags)
-	hh := handlers.NewHello(l)
-	gb := handlers.NewGoodbye(l)
+var bindAddress = env.String("BIND_ADDRESS", false, ":8080", "Bind address for the server")
 
+func main() {
+	env.Parse()
+	l := log.New(os.Stdout, "product-api", log.LstdFlags)
+	ph := handlers.NewProducts(l)
+	gh := handlers.NewGoodbye(l)
 	sm := http.NewServeMux()
-	sm.Handle("/", hh)
-	sm.Handle("/goodbye", gb)
+	sm.Handle("/", ph)
+	sm.Handle("/goodbye", gh)
 
 	s := &http.Server{
 		Addr:         ":8080",
