@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/gorilla/mux"
 	"github.com/nicholasjackson/env"
 	"log"
 	"microsvc/handlers"
@@ -17,22 +18,30 @@ func main() {
 	env.Parse()
 	l := log.New(os.Stdout, "product-api", log.LstdFlags)
 	ph := handlers.NewProducts(l)
-	gh := handlers.NewGoodbye(l)
-	sm := http.NewServeMux()
-	sm.Handle("/", ph)
-	sm.Handle("/goodbye", gh)
+	sm := mux.NewRouter()
+
+	getRouter:=sm.Methods(http.MethodGet).Subrouter()
+	getRouter.HandleFunc("/",ph.GetProducts)
+
+	putRouter :=sm.Methods(http.MethodPut).Subrouter()
+	putRouter.HandleFunc("/{id:[0-9]+}",ph.UpdateProducts)
+
+	postRouter:= sm.Methods(http.MethodPost).Subrouter()
+	postRouter.HandleFunc("/",ph.AddProduct)
 
 	s := &http.Server{
-		Addr:         ":8080",
+		Addr:         *bindAddress,
 		Handler:      sm,
 		IdleTimeout:  120 * time.Second,
 		ReadTimeout:  1 * time.Second,
 		WriteTimeout: 1 * time.Second,
 	}
 	go func() {
+		l.Println("Starting server on port 8080")
 		err := s.ListenAndServe()
 		if err != nil {
-			l.Fatal(err)
+			l.Printf("Error starting server: %s\n",err)
+			os.Exit(1)
 		}
 	}()
 	sigChan := make(chan os.Signal)
