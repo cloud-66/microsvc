@@ -26,10 +26,10 @@ func main() {
 	putRouter := sm.Methods(http.MethodPut).Subrouter()
 	putRouter.HandleFunc("/{id:[0-9]+}", ph.UpdateProducts)
 
-	putRouter.Use(ph.MiddlewareProductValidation)
+	putRouter.Use(ph.MiddlewareValidateProduct)
 	postRouter := sm.Methods(http.MethodPost).Subrouter()
 	postRouter.HandleFunc("/", ph.AddProduct)
-	postRouter.Use(ph.MiddlewareProductValidation)
+	postRouter.Use(ph.MiddlewareValidateProduct)
 
 	s := &http.Server{
 		Addr:         *bindAddress,
@@ -51,7 +51,7 @@ func main() {
 	signal.Notify(sigChan, os.Kill)
 
 	sig := <-sigChan
-	l.Println("Recieved terminate,graceful shutdown", sig)
+	l.Println("Got signal: ", sig)
 	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	s.Shutdown(tc)
 }

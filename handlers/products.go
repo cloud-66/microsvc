@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"github.com/gorilla/mux"
 	"log"
 	"microsvc/data"
@@ -59,7 +60,7 @@ func (p *Products) UpdateProducts(rw http.ResponseWriter, r *http.Request) {
 type KeyProduct struct {
 }
 
-func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
+func (p Products) MiddlewareValidateProduct(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		prod := data.Product{}
 		err := prod.FromJSON(r.Body)
@@ -68,9 +69,18 @@ func (p Products) MiddlewareProductValidation(next http.Handler) http.Handler {
 			http.Error(rw, "Error reading product", http.StatusBadRequest)
 			return
 		}
+		// validate the product
+		err = prod.Validate()
+		if err != nil {
+			p.l.Println("[Error] validating product", err)
+			http.Error(rw,
+				fmt.Sprintf("Error validating product: %s", err),
+				http.StatusBadRequest)
+			return
+		}
 		ctx := context.WithValue(r.Context(), KeyProduct{}, prod)
-		req := r.WithContext(ctx)
+		r = r.WithContext(ctx)
 
-		next.ServeHTTP(rw, req)
+		next.ServeHTTP(rw, r)
 	})
 }
